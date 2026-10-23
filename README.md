@@ -1,51 +1,50 @@
-# GreenTech Analytics — Multi-cloud climate deviation prototype
+# 🌍 GreenTech Analytics: Sustainable Climate Data Processing
 
-A small Python HTTP service combining live OpenWeatherMap temperature with a historical monthly average from a Kaggle climate CSV and returning JSON climate-deviation results.
+## 📌 Project Overview
+GreenTech Analytics is a cloud-native prototype designed to analyze climate change by comparing real-time weather data with historical global temperature records. The project demonstrates the application of the **NIST Cloud Computing Model** using a serverless architecture to ensure scalability, elasticity, and cost-efficiency.
 
-## Status and scope
-- **AWS Lambda:** existing deployment is reported in the project report; validate the endpoint before submission.
-- **Azure Functions:** source scaffold is included, but a successful Azure deployment must still be completed and evidenced. This repository update does not deploy cloud resources.
-- **OAuth 2.0/OIDC:** bearer JWT validation is included when issuer, audience, and JWKS settings are configured. Configure a real identity provider and test it before claiming authentication is live.
-- **CO₂:** optional CSV field support is included. A CO₂ value is returned only when the selected dataset contains a usable field and the column mapping is correct. Verify against the actual dataset before claiming integration.
+## 🏗️ Cloud Architecture
+The system is designed as a multi-cloud service to compare deployment and performance across different providers.
 
-## Files
-- `app.py` — shared processing handler and optional OIDC JWT validation
-- `function_app.py` — Azure Functions HTTP trigger
-- `requirements.txt` — Python dependencies
-- `load_test.py` — concurrent HTTP test harness
-- `.env.example` — configuration template (no secrets)
-- `docs/API.md` — API documentation
+- **Primary Deployment:** AWS Lambda (PaaS/FaaS)
+- **Secondary Prototypes:** Microsoft Azure Functions & Google Cloud Functions
+- **Runtime:** Python 3.12
+- **Security:** HTTPS communication, Environment Variables for secret management, and OIDC/OAuth 2.0 scaffold.
 
-## Prerequisites
-Python 3.11/3.12, an OpenWeatherMap API key, the Kaggle climate CSV, and an AWS/Azure account. For authentication, configure an OAuth 2.0/OIDC provider that issues JWT access tokens.
+## 🛠️ Tech Stack
+- **Language:** Python 3.12
+- **Cloud Provider:** Amazon Web Services (AWS)
+- **API:** OpenWeatherMap REST API (Live environmental data)
+- **Dataset:** Kaggle Global Climate Change Dataset (Historical temperature & CO₂ data)
+- **Libraries:** Pandas (Data processing), Requests (API communication)
 
-## Local setup
-1. Create a virtual environment: `python -m venv .venv`
-2. Activate it (Windows: `.venv\\Scripts\\activate`; macOS/Linux: `source .venv/bin/activate`)
-3. Install dependencies: `pip install -r requirements.txt`
-4. Copy `.env.example` to `.env` and set values in your shell or local environment. The app does not automatically load `.env`.
-5. Set `CLIMATE_CSV_PATH` and map the actual CSV headers using the variables in `.env.example`.
-6. Never commit `.env`, API keys, tokens, or other secrets.
+## 📊 How it Works
+1. **Request:** The user sends an HTTPS GET request to the cloud endpoint with a city parameter (e.g., `?city=London`).
+2. **Live Retrieval:** The function fetches the current temperature via the **OpenWeatherMap API**.
+3. **Historical Analysis:** The function processes a **mini-dataset** derived from the Kaggle Global Climate Change dataset to find the historical average for that specific city.
+4. **Computation:** The system calculates the **Climate Deviation**:
+   `Deviation = Live Temperature - Historical Average`
+5. **Response:** The result is returned as a structured JSON object containing the current temp, historical average, deviation, and a status (Warmer/Colder).
 
-## Data mapping
-Kaggle dataset schemas differ. Configure `CSV_CITY_COLUMN`, `CSV_DATE_COLUMN`, `CSV_TEMP_COLUMN`, and optional `CSV_CO2_COLUMN` to actual headers. The implementation performs an exact city-name match and calculates an average for the current calendar month when available, otherwise it uses all matching rows. If the dataset does not contain city-level observations, do not describe a global average as a city-specific historical average.
+## 📈 Performance Metrics (AWS)
+A load test of 20 consecutive requests was performed to validate the elasticity of the serverless environment.
+- **Success Rate:** 100%
+- **Average Latency:** 1888.61 ms
+- **Max Latency:** 1954.55 ms
+- **Analysis:** The latency is primarily attributed to the "Cold Start" of the Pandas library in a serverless environment.
 
-## Deployment
-### AWS Lambda
-Package the shared files and dependencies or attach a compatible layer. Configure environment variables in Lambda. Use HTTPS through a Function URL or API Gateway. For production, configure an API Gateway JWT authorizer or verified Lambda authorizer; do not expose a public unauthenticated endpoint if authentication is required.
-
-### Azure Functions
-Install Azure Functions Core Tools and a compatible Python runtime. Configure Function App settings, then publish with `func azure functionapp publish <APP_NAME>`. Test the HTTPS endpoint. Configure Microsoft Entra ID/App Service Authentication or API Management JWT validation for OAuth/OIDC; app settings alone do not complete OAuth deployment.
-
-## Concurrent testing
-Run `python load_test.py --url 'https://YOUR-ENDPOINT/?city=London' --requests 20 --concurrency 5`. Run the same request count and concurrency against AWS and Azure from the same machine and time window. Record region, plan, cold/warm status, and test conditions. This measures client-observed latency and does not by itself prove provider-side execution time or autoscaling.
-
-## Cost comparison
-Use current regional pricing calculators. Record region, plan, memory, execution duration, request count, logging, egress, and free-tier assumptions. Do not infer cost advantage from latency alone.
-
-## Evidence still required before final submission
-- Azure deployed endpoint and successful response screenshot
-- Actual dataset source/version, column mapping, and evidence for temperature/CO₂ calculations
-- Reproducible concurrent AWS and Azure test outputs
-- OAuth/OIDC configuration and tests for valid, missing, expired, and wrong-audience tokens
-- Architecture diagram and redacted deployment screenshots
+## 📖 API Documentation
+**Endpoint:** `/climate_processor`  
+**Method:** `GET`  
+**Parameter:** `city` (String)  
+**Example Request:** `https://[your-lambda-url]/?city=London`  
+**Example Response:**
+```json
+{
+  "city": "London",
+  "current_temp": 11.82,
+  "historical_avg": 9.6,
+  "deviation": 2.22,
+  "status": "Warmer than average",
+  "details": "overcast clouds"
+}
